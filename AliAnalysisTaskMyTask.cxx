@@ -35,14 +35,14 @@ using namespace std;            // std namespace: so you can do things like 'cou
 ClassImp(AliAnalysisTaskMyTask) // classimp: necessary for root
 
 AliAnalysisTaskMyTask::AliAnalysisTaskMyTask() : AliAnalysisTaskSE(), 
-    fAOD(0), fOutputList(0), fHistPt(0), fHistPV(0)
+    fAOD(0), fOutputList(0), fHistPt(0), fHistPV(0), fHistSel(0)
 {
     // default constructor, don't allocate memory here!
     // this is used by root for IO purposes, it needs to remain empty
 }
 //_____________________________________________________________________________
 AliAnalysisTaskMyTask::AliAnalysisTaskMyTask(const char* name) : AliAnalysisTaskSE(name),
-    fAOD(0), fOutputList(0), fHistPt(0), fHistPV(0)
+    fAOD(0), fOutputList(0), fHistPt(0), fHistPV(0), fHistSel(0)
 {
     // constructor
     DefineInput(0, TChain::Class());    // define the input of the analysis: in this case we take a 'chain' of events
@@ -85,6 +85,13 @@ void AliAnalysisTaskMyTask::UserCreateOutputObjects()
 
     fHistPV = new TH1F("fHistPV", "fHistPV", 400, -20., 20.);
     fOutputList->Add(fHistPV);
+
+    fHistSel = new TH1F("fHistSel", "fHistSel", 2, -0.5, 1.5);
+    fHistSel->GetXaxis()->SetBinLabel(1, "nEvent");
+    fHistSel->GetXaxis()->SetBinLabel(2, "nEventSel");
+    fHistSel->GetXaxis()->SetNdivisions(1, kFALSE);
+    fHistSel->SetMinimum(0);
+    fOutputList->Add(fHistSel);
     
     PostData(1, fOutputList);           // postdata will notify the analysis manager of changes / updates to the 
                                         // fOutputList object. the manager will in the end take care of writing your output to file
@@ -105,8 +112,15 @@ void AliAnalysisTaskMyTask::UserExec(Option_t *)
         // example part: i'll show how to loop over the tracks in an event 
         // and extract some information from them which we'll store in a histogram
 
+    fHistSel->Fill(0);
+
     Float_t vertexZ = fAOD->GetPrimaryVertex()->GetZ();
     fHistPV->Fill(vertexZ);
+
+    if(TMath::Abs(vertexZ) > 10.)
+        return;
+
+    fHistSel->Fill(1);
 
     Int_t iTracks(fAOD->GetNumberOfTracks());           // see how many tracks there are in the event
     for(Int_t i(0); i < iTracks; i++) {                 // loop ove rall these tracks
