@@ -19,11 +19,12 @@ class AliAnalysisTaskMyTask : public AliAnalysisTaskSE
         virtual void            Terminate(Option_t* option);
 
     private:
-        AliAODEvent*            fAOD;           //! input event
-        TList*                  fOutputList;    //! output list
-        TH1F*                   fHistPt;        //! dummy histogram
-        TH1F*                   fHistPV;        //! primary vertex histogram
-        TH1F*                   fHistSel;       //! store all and selected events
+        AliAODEvent*            fAOD;            //! input event
+        TList*                  fOutputList;     //! output list
+        TH1F*                   fHistPt;         //! dummy histogram
+        TH1F*                   fHistPV;         //! primary vertex histogram
+        TH1F*                   fHistSel;        //! store all and selected events
+        TH2F*                   fHistTrackDistr; //! eta and phi tracks distribution
 
         AliAnalysisTaskMyTask(const AliAnalysisTaskMyTask&); // not implemented
         AliAnalysisTaskMyTask& operator=(const AliAnalysisTaskMyTask&); // not implemented
