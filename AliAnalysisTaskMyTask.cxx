@@ -35,14 +35,14 @@ using namespace std;            // std namespace: so you can do things like 'cou
 ClassImp(AliAnalysisTaskMyTask) // classimp: necessary for root
 
 AliAnalysisTaskMyTask::AliAnalysisTaskMyTask() : AliAnalysisTaskSE(), 
-    fAOD(0), fOutputList(0), fHistPt(0)
+    fAOD(0), fOutputList(0), fHistPt(0), fHistPV(0)
 {
     // default constructor, don't allocate memory here!
     // this is used by root for IO purposes, it needs to remain empty
 }
 //_____________________________________________________________________________
 AliAnalysisTaskMyTask::AliAnalysisTaskMyTask(const char* name) : AliAnalysisTaskSE(name),
-    fAOD(0), fOutputList(0), fHistPt(0)
+    fAOD(0), fOutputList(0), fHistPt(0), fHistPV(0)
 {
     // constructor
     DefineInput(0, TChain::Class());    // define the input of the analysis: in this case we take a 'chain' of events
@@ -79,9 +79,12 @@ void AliAnalysisTaskMyTask::UserCreateOutputObjects()
                                         // if requested (dont worry about this now)
 
     // example of a histogram
-    fHistPt = new TH1F("fHistPt", "fHistPt", 100, 0, 10);       // create your histogra
+    fHistPt = new TH1F("fHistPt", "fHistPt", 100, 0, 10);       // create your histogram
     fOutputList->Add(fHistPt);          // don't forget to add it to the list! the list will be written to file, so if you want
                                         // your histogram in the output file, add it to the list!
+
+    fHistPV = new TH1F("fHistPV", "fHistPV", 400, -20., 20.);
+    fOutputList->Add(fHistPV);
     
     PostData(1, fOutputList);           // postdata will notify the analysis manager of changes / updates to the 
                                         // fOutputList object. the manager will in the end take care of writing your output to file
@@ -101,6 +104,10 @@ void AliAnalysisTaskMyTask::UserExec(Option_t *)
     if(!fAOD) return;                                   // if the pointer to the event is empty (getting it failed) skip this event
         // example part: i'll show how to loop over the tracks in an event 
         // and extract some information from them which we'll store in a histogram
+
+    Float_t vertexZ = fAOD->GetPrimaryVertex()->GetZ();
+    fHistPV->Fill(vertexZ);
+
     Int_t iTracks(fAOD->GetNumberOfTracks());           // see how many tracks there are in the event
     for(Int_t i(0); i < iTracks; i++) {                 // loop ove rall these tracks
         AliAODTrack* track = static_cast<AliAODTrack*>(fAOD->GetTrack(i));         // get a track (type AliAODTrack) from the event
