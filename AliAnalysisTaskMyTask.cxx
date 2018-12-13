@@ -36,14 +36,16 @@ using namespace std;            // std namespace: so you can do things like 'cou
 ClassImp(AliAnalysisTaskMyTask) // classimp: necessary for root
 
 AliAnalysisTaskMyTask::AliAnalysisTaskMyTask() : AliAnalysisTaskSE(), 
-    fAOD(0), fOutputList(0), fHistPt(0), fHistPV(0), fHistSel(0), fHistTrackDistr(0)
+    fAOD(0), fOutputList(0), fHistPt(0), fHistPV(0), fHistSel(0), 
+    fHistTrackDistr(0), fHistTPCSig(0)
 {
     // default constructor, don't allocate memory here!
     // this is used by root for IO purposes, it needs to remain empty
 }
 //_____________________________________________________________________________
 AliAnalysisTaskMyTask::AliAnalysisTaskMyTask(const char* name) : AliAnalysisTaskSE(name),
-    fAOD(0), fOutputList(0), fHistPt(0), fHistPV(0), fHistSel(0), fHistTrackDistr(0)
+    fAOD(0), fOutputList(0), fHistPt(0), fHistPV(0), fHistSel(0), 
+    fHistTrackDistr(0), fHistTPCSig(0)
 {
     // constructor
     DefineInput(0, TChain::Class());    // define the input of the analysis: in this case we take a 'chain' of events
@@ -98,6 +100,11 @@ void AliAnalysisTaskMyTask::UserCreateOutputObjects()
     fHistTrackDistr->GetXaxis()->SetTitle("#eta");
     fHistTrackDistr->GetYaxis()->SetTitle("#phi");
     fOutputList->Add(fHistTrackDistr);
+
+    fHistTPCSig = new TH2F("fHistTPCSig", "fHistTPCSig", 1100, 0., 11., 1000, 0., 1e3);
+    fHistTPCSig->GetXaxis()->SetTitle("p (GeV/c)");
+    fHistTPCSig->GetYaxis()->SetTitle("TPC dE/dx");
+    fOutputList->Add(fHistTPCSig);
     
     PostData(1, fOutputList);           // postdata will notify the analysis manager of changes / updates to the 
                                         // fOutputList object. the manager will in the end take care of writing your output to file
@@ -132,9 +139,10 @@ void AliAnalysisTaskMyTask::UserExec(Option_t *)
 
     for(Int_t i(0); i < iTracks; i++) {                 // loop ove rall these tracks
         AliAODTrack* track = static_cast<AliAODTrack*>(fAOD->GetTrack(i));         // get a track (type AliAODTrack) from the event
-        if(!track || !track->TestFilterBit(128)) continue;                            // if we failed, skip this track
+        if(!track || !track->TestFilterBit(1)) continue;                            // if we failed, skip this track
         fHistPt->Fill(track->Pt());                     // plot the pt value of the track in a histogram
         fHistTrackDistr->Fill(track->Eta(), track->Phi());
+        fHistTPCSig->Fill(track->P(), track->GetTPCsignal());
     }                                                   // continue until all the tracks are processed
     PostData(1, fOutputList);                           // stream the results the analysis of this event to
                                                         // the output manager which will take care of writing

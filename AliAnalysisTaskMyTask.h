@@ -25,6 +25,7 @@ class AliAnalysisTaskMyTask : public AliAnalysisTaskSE
         TH1F*                   fHistPV;         //! primary vertex histogram
         TH1F*                   fHistSel;        //! store all and selected events
         TH2F*                   fHistTrackDistr; //! eta and phi tracks distribution
+        TH2F*                   fHistTPCSig;     //! TPC dE/dx vs impulse of tracks
 
         AliAnalysisTaskMyTask(const AliAnalysisTaskMyTask&); // not implemented
         AliAnalysisTaskMyTask& operator=(const AliAnalysisTaskMyTask&); // not implemented
