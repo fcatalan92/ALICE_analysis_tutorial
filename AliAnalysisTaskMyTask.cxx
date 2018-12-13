@@ -27,6 +27,7 @@
 #include "AliAnalysisManager.h"
 #include "AliAODEvent.h"
 #include "AliAODInputHandler.h"
+#include "AliMultSelection.h"
 #include "AliPIDResponse.h"
 #include "AliAnalysisTaskMyTask.h"
 
@@ -90,9 +91,10 @@ void AliAnalysisTaskMyTask::UserCreateOutputObjects()
     fHistPV = new TH1F("fHistPV", "fHistPV", 400, -20., 20.);
     fOutputList->Add(fHistPV);
 
-    fHistSel = new TH1F("fHistSel", "fHistSel", 2, -0.5, 1.5);
+    fHistSel = new TH1F("fHistSel", "fHistSel", 3, -0.5, 2.5);
     fHistSel->GetXaxis()->SetBinLabel(1, "nEvent");
     fHistSel->GetXaxis()->SetBinLabel(2, "nEventSel");
+    fHistSel->GetXaxis()->SetBinLabel(3, "nEventCentCut");
     fHistSel->GetXaxis()->SetNdivisions(1, kFALSE);
     fHistSel->SetMinimum(0);
     fOutputList->Add(fHistSel);
@@ -134,21 +136,28 @@ void AliAnalysisTaskMyTask::UserExec(Option_t *)
     if(!fAOD) return;                                   // if the pointer to the event is empty (getting it failed) skip this event
         // example part: i'll show how to loop over the tracks in an event 
         // and extract some information from them which we'll store in a histogram
+    fHistSel->Fill(0);
+
+    Float_t vertexZ = fAOD->GetPrimaryVertex()->GetZ();
+    fHistPV->Fill(vertexZ);
+    if(TMath::Abs(vertexZ) > 10.)
+        return;
+    fHistSel->Fill(1);
+    
     AliAnalysisManager *man = AliAnalysisManager::GetAnalysisManager();
     if (man){
         AliInputEventHandler* inputHandler = (AliInputEventHandler*)(man->GetInputEventHandler());
         if (inputHandler)   fPIDResponse = inputHandler->GetPIDResponse();
     }
 
-    fHistSel->Fill(0);
+    Float_t centrality = 0.;
+    AliMultSelection *multSelection = static_cast<AliMultSelection*>(fAOD->FindListObject("MultSelection"));
+    if(multSelection)
+        centrality = multSelection->GetMultiplicityPercentile("V0M");
 
-    Float_t vertexZ = fAOD->GetPrimaryVertex()->GetZ();
-    fHistPV->Fill(vertexZ);
-
-    if(TMath::Abs(vertexZ) > 10.)
-        return;
-
-    fHistSel->Fill(1);
+    Bool_t IsCentral = (centrality > 0.) && (centrality < 10.);
+    if(IsCentral)
+        fHistSel->Fill(2);   
 
     Int_t iTracks(fAOD->GetNumberOfTracks());           // see how many tracks there are in the event
 
@@ -158,8 +167,10 @@ void AliAnalysisTaskMyTask::UserExec(Option_t *)
         
         fHistPt->Fill(track->Pt());                     // plot the pt value of the track in a histogram
         fHistTrackDistr->Fill(track->Eta(), track->Phi());
+
+        Bool_t IsPion = TMath::Abs(fPIDResponse->NumberOfSigmasTPC(track, AliPID::kPion)) < 3;
         
-        if(TMath::Abs(fPIDResponse->NumberOfSigmasTPC(track, AliPID::kPion)) < 3){
+        if(IsCentral && IsPion){
             fHistTPCSig->Fill(track->P(), track->GetTPCsignal());
             fHistPionPt->Fill(track->Pt());
             fHistPionDistr->Fill(track->Eta(), track->Phi());
