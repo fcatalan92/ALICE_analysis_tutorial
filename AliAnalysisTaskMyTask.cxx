@@ -27,6 +27,7 @@
 #include "AliAnalysisManager.h"
 #include "AliAODEvent.h"
 #include "AliAODInputHandler.h"
+#include "AliPIDResponse.h"
 #include "AliAnalysisTaskMyTask.h"
 
 class AliAnalysisTaskMyTask;    // your analysis class
@@ -36,16 +37,16 @@ using namespace std;            // std namespace: so you can do things like 'cou
 ClassImp(AliAnalysisTaskMyTask) // classimp: necessary for root
 
 AliAnalysisTaskMyTask::AliAnalysisTaskMyTask() : AliAnalysisTaskSE(), 
-    fAOD(0), fOutputList(0), fHistPt(0), fHistPV(0), fHistSel(0), 
-    fHistTrackDistr(0), fHistTPCSig(0)
+    fAOD(0), fPIDResponse(0), fOutputList(0), fHistPt(0), fHistPV(0), fHistSel(0), 
+    fHistTrackDistr(0), fHistTPCSig(0), fHistPionPt(0), fHistPionDistr(0)
 {
     // default constructor, don't allocate memory here!
     // this is used by root for IO purposes, it needs to remain empty
 }
 //_____________________________________________________________________________
 AliAnalysisTaskMyTask::AliAnalysisTaskMyTask(const char* name) : AliAnalysisTaskSE(name),
-    fAOD(0), fOutputList(0), fHistPt(0), fHistPV(0), fHistSel(0), 
-    fHistTrackDistr(0), fHistTPCSig(0)
+    fAOD(0), fPIDResponse(0), fOutputList(0), fHistPt(0), fHistPV(0), fHistSel(0), 
+    fHistTrackDistr(0), fHistTPCSig(0), fHistPionPt(0), fHistPionDistr(0)
 {
     // constructor
     DefineInput(0, TChain::Class());    // define the input of the analysis: in this case we take a 'chain' of events
@@ -105,6 +106,15 @@ void AliAnalysisTaskMyTask::UserCreateOutputObjects()
     fHistTPCSig->GetXaxis()->SetTitle("p (GeV/c)");
     fHistTPCSig->GetYaxis()->SetTitle("TPC dE/dx");
     fOutputList->Add(fHistTPCSig);
+
+    fHistPionPt = new TH1F("fHistPionPt", "fHistPionPt", 100, 0, 10);       // create your histogram
+    fHistPionPt->GetXaxis()->SetTitle("p_{T} (GeV/c)");
+    fOutputList->Add(fHistPionPt); 
+
+    fHistPionDistr = new TH2F("fHistPionDistr", "fHistPionDistr", 30, -1.5, 1.5, 60, 0., 2*TMath::Pi());
+    fHistPionDistr->GetXaxis()->SetTitle("#eta");
+    fHistPionDistr->GetYaxis()->SetTitle("#phi");
+    fOutputList->Add(fHistPionDistr);
     
     PostData(1, fOutputList);           // postdata will notify the analysis manager of changes / updates to the 
                                         // fOutputList object. the manager will in the end take care of writing your output to file
@@ -124,6 +134,11 @@ void AliAnalysisTaskMyTask::UserExec(Option_t *)
     if(!fAOD) return;                                   // if the pointer to the event is empty (getting it failed) skip this event
         // example part: i'll show how to loop over the tracks in an event 
         // and extract some information from them which we'll store in a histogram
+    AliAnalysisManager *man = AliAnalysisManager::GetAnalysisManager();
+    if (man){
+        AliInputEventHandler* inputHandler = (AliInputEventHandler*)(man->GetInputEventHandler());
+        if (inputHandler)   fPIDResponse = inputHandler->GetPIDResponse();
+    }
 
     fHistSel->Fill(0);
 
@@ -140,9 +155,15 @@ void AliAnalysisTaskMyTask::UserExec(Option_t *)
     for(Int_t i(0); i < iTracks; i++) {                 // loop ove rall these tracks
         AliAODTrack* track = static_cast<AliAODTrack*>(fAOD->GetTrack(i));         // get a track (type AliAODTrack) from the event
         if(!track || !track->TestFilterBit(1)) continue;                            // if we failed, skip this track
+        
         fHistPt->Fill(track->Pt());                     // plot the pt value of the track in a histogram
         fHistTrackDistr->Fill(track->Eta(), track->Phi());
-        fHistTPCSig->Fill(track->P(), track->GetTPCsignal());
+        
+        if(TMath::Abs(fPIDResponse->NumberOfSigmasTPC(track, AliPID::kPion)) < 3){
+            fHistTPCSig->Fill(track->P(), track->GetTPCsignal());
+            fHistPionPt->Fill(track->Pt());
+            fHistPionDistr->Fill(track->Eta(), track->Phi());
+        }
     }                                                   // continue until all the tracks are processed
     PostData(1, fOutputList);                           // stream the results the analysis of this event to
                                                         // the output manager which will take care of writing
