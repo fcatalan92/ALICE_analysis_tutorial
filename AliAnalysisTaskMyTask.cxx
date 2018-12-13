@@ -29,6 +29,7 @@
 #include "AliAODInputHandler.h"
 #include "AliMultSelection.h"
 #include "AliPIDResponse.h"
+#include "AliAODMCParticle.h"
 #include "AliAnalysisTaskMyTask.h"
 
 class AliAnalysisTaskMyTask;    // your analysis class
@@ -39,7 +40,7 @@ ClassImp(AliAnalysisTaskMyTask) // classimp: necessary for root
 
 AliAnalysisTaskMyTask::AliAnalysisTaskMyTask() : AliAnalysisTaskSE(), 
     fAOD(0), fPIDResponse(0), fOutputList(0), fHistPt(0), fHistPV(0), fHistSel(0), 
-    fHistTrackDistr(0), fHistTPCSig(0), fHistPionPt(0), fHistPionDistr(0)
+    fHistTrackDistr(0), fHistTPCSig(0), fHistPionPt(0), fHistPionDistr(0), fMCEvent(0)
 {
     // default constructor, don't allocate memory here!
     // this is used by root for IO purposes, it needs to remain empty
@@ -47,7 +48,7 @@ AliAnalysisTaskMyTask::AliAnalysisTaskMyTask() : AliAnalysisTaskSE(),
 //_____________________________________________________________________________
 AliAnalysisTaskMyTask::AliAnalysisTaskMyTask(const char* name) : AliAnalysisTaskSE(name),
     fAOD(0), fPIDResponse(0), fOutputList(0), fHistPt(0), fHistPV(0), fHistSel(0), 
-    fHistTrackDistr(0), fHistTPCSig(0), fHistPionPt(0), fHistPionDistr(0)
+    fHistTrackDistr(0), fHistTPCSig(0), fHistPionPt(0), fHistPionDistr(0), fMCEvent(0)
 {
     // constructor
     DefineInput(0, TChain::Class());    // define the input of the analysis: in this case we take a 'chain' of events
@@ -175,7 +176,11 @@ void AliAnalysisTaskMyTask::UserExec(Option_t *)
             fHistPionPt->Fill(track->Pt());
             fHistPionDistr->Fill(track->Eta(), track->Phi());
         }
-    }                                                   // continue until all the tracks are processed
+    }        // continue until all the tracks are processed
+    
+    fMCEvent = MCEvent();
+    if(fMCEvent) ProcessMCParticles();
+                                               
     PostData(1, fOutputList);                           // stream the results the analysis of this event to
                                                         // the output manager which will take care of writing
                                                         // it to a file
@@ -187,3 +192,17 @@ void AliAnalysisTaskMyTask::Terminate(Option_t *)
     // called at the END of the analysis (when all events are processed)
 }
 //_____________________________________________________________________________
+void AliAnalysisTaskMyTask::ProcessMCParticles()
+{
+    // process MC particles
+    TClonesArray* AODMCTrackArray = dynamic_cast<TClonesArray*>(fInputEvent->FindListObject(AliAODMCParticle::StdBranchName()));
+    if (AODMCTrackArray == NULL) return;
+
+    // Loop over all primary MC particle
+    for(Long_t i = 0; i < AODMCTrackArray->GetEntriesFast(); i++) {
+
+      AliAODMCParticle* particle = static_cast<AliAODMCParticle*>(AODMCTrackArray->At(i));
+      if (!particle) continue;
+      //cout << "PDG CODE = " << particle->GetPdgCode() << endl;
+    }
+}

@@ -19,6 +19,8 @@ class AliAnalysisTaskMyTask : public AliAnalysisTaskSE
         virtual void            UserCreateOutputObjects();
         virtual void            UserExec(Option_t* option);
         virtual void            Terminate(Option_t* option);
+        
+        void                    ProcessMCParticles();
 
     private:
         AliAODEvent*            fAOD;            //! input event
@@ -31,6 +33,7 @@ class AliAnalysisTaskMyTask : public AliAnalysisTaskSE
         TH2F*                   fHistTPCSig;     //! TPC dE/dx vs impulse of tracks
         TH1F*                   fHistPionPt;     //! pion pt histogram
         TH2F*                   fHistPionDistr; //! eta and phi pion distribution
+        AliMCEvent*             fMCEvent;       //! corresponding MC event
 
         AliAnalysisTaskMyTask(const AliAnalysisTaskMyTask&); // not implemented
         AliAnalysisTaskMyTask& operator=(const AliAnalysisTaskMyTask&); // not implemented
