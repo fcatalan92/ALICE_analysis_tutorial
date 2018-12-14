@@ -12,13 +12,8 @@ void runAnalysis()
     Bool_t gridTest = kTRUE;
     
     // since we will compile a class, tell root where to look for headers  
-#if !defined (__CINT__) || defined (__CLING__)
     gInterpreter->ProcessLine(".include $ROOTSYS/include");
     gInterpreter->ProcessLine(".include $ALICE_ROOT/include");
-#else
-    gROOT->ProcessLine(".include $ROOTSYS/include");
-    gROOT->ProcessLine(".include $ALICE_ROOT/include");
-#endif
      
     // create the analysis manager
     AliAnalysisManager *mgr = new AliAnalysisManager("AnalysisTaskExample");
@@ -34,17 +29,8 @@ void runAnalysis()
     AliAnalysisTaskPIDResponse* PIDresponseTask = reinterpret_cast<AliAnalysisTaskPIDResponse*>(PIDadd.Exec());
 
     // compile the class and load the add task macro
-    // here we have to differentiate between using the just-in-time compiler
-    // from root6, or the interpreter of root5
-#if !defined (__CINT__) || defined (__CLING__)
     gInterpreter->LoadMacro("AliAnalysisTaskMyTask.cxx++g");
     AliAnalysisTaskMyTask *task = reinterpret_cast<AliAnalysisTaskMyTask*>(gInterpreter->ExecuteMacro("AddMyTask.C"));
-#else
-    gROOT->LoadMacro("AliAnalysisTaskMyTask.cxx++g");
-    gROOT->LoadMacro("AddMyTask.C");
-    AliAnalysisTaskMyTask *task = AddMyTask();
-#endif
-
 
     if(!mgr->InitAnalysis()) return;
     mgr->SetDebugLevel(2);
